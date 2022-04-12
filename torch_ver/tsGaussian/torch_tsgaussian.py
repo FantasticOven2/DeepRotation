@@ -6,6 +6,22 @@ from liegroups.torch import SO3
 class TangentSpaceGaussian(object):
     def __init__(self, device: torch.device):
         return
+
+    def skew(omega: torch.Tensor) -> torch.Tensor:
+        (*batch_axes, dim) = omega.shape
+        assert dim == 3
+
+        omega_hat = torch.zeros((*batch_axes, 3, 3))
+        omega_hat[..., 0, 1] = -omega[..., 2]
+        omega_hat[..., 1, 0] = omega[..., 2]
+        omega_hat[..., 0, 2] = omega[..., 1]
+        omega_hat[..., 2, 0] = -omega[..., 1]
+        omega_hat[..., 1, 2] = -omega[..., 0]
+        omega_hat[..., 2, 1] = omega[..., 0]
+
+        assert omega_hat.shape == (*batch_axes, dim, dim)
+        return omega_hat
+
     """Sampling from the Gaussian N(0, sigma) then project it back on to SO(3)"""
     """Issue: Code runs, need to check correctness"""
     def rsample(self, R_mu, sigma):
