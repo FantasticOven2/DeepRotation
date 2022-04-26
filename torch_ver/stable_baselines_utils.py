@@ -24,6 +24,8 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
+        print('mu: ', self.mu.size())
+        print('sigma: ', self.sigma.size())
         log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
         return log_prob
 
@@ -48,6 +50,7 @@ class TangentSpaceGaussian(Distribution):
 
     def log_prob_from_params(self, mu, sigma):
         actions = self.actions_from_params(mu, sigma)
+        print('actions: ', actions.size())
         log_prob = self.log_prob(actions)
         return actions, log_prob
 

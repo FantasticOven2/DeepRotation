@@ -39,8 +39,10 @@ class TangentSpaceGaussian(object):
             Return a skew symmetric matrix.
         """
         omega = torch.normal(torch.zeros(3), sigma)
+        print('omega size: ', omega.size())
+        # print(R_mu.size())
         R_x = torch.matmul(R_mu, SO3.exp(omega).as_matrix())
-        return self.vec_to_skew(R_x)
+        return R_x
 
     def normal_term(self, sigma):
         """ Compute normalization term in the pdf of tangent space Gaussian
@@ -53,7 +55,9 @@ class TangentSpaceGaussian(object):
         """ Log map term in pdf of tangent space Gaussian
             Return a 3d vector.
         """
-        print(torch.bmm(torch.transpose(R_1, 1, 2), R_2).size())
+        # print('exp map size: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2).size())
+        # print('log map size: ', SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2))).size())
+        # print('log map type: ', type(SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))))
         return SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))
 
     def log_probs(self, R_x, R_mu, sigma):
@@ -63,10 +67,14 @@ class TangentSpaceGaussian(object):
         log_term = self.log_map(R_x, R_mu)
         # print('log size: ', log_term.size())
         batch_size = R_x.shape[0]
+        sigma_batch = sigma.repeat(batch_size, 1)
         # print(batch_size)
-        sigma_mat = torch.diag_embed(sigma).repeat(batch_size, 1, 1)
-        # print(log_term.reshape((batch_size, 1, log_term.shape[1])).size())
-        # print(torch.linalg.inv(sigma_mat).size())
+        # print('sigma size: ', sigma_batch.size())
+        sigma_mat = torch.diag_embed(sigma_batch)
+        # print(log_term.reshape((batch_size, 1, log_term.shape[1])).size())]
+        # print('sig_mat size: ', sigma_mat.size())
+        # print('bs: ', batch_size)
+        # print('sigma inv size: ', torch.linalg.inv(sigma_mat).size())
         # print(log_term.size())
         log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
                     log_term.reshape(batch_size, log_term.shape[1], 1)) - torch.log(self.normal_term(sigma))
