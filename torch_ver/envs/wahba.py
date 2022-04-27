@@ -103,7 +103,7 @@ class Wahba(gym.Env):
     def __init__(self):
         super(Wahba, self).__init__()
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(4,), dtype=np.float32)
+            low=-1.0, high=1.0, shape=(3,3), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(2, 3, N_MATCHES_PER_SAMPLE),
             dtype=np.float32)

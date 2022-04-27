@@ -34,6 +34,7 @@ class TangentSpaceGaussian(Distribution):
 
     def sample(self) -> Tensor:
         """Need to be implemented"""
+        print('self.sigma size: ', self.sigma.size())
         s = self.distribution.rsample(self.mu, self.sigma)
         return s
 
@@ -46,6 +47,9 @@ class TangentSpaceGaussian(Distribution):
     def actions_from_params(self, mu: Tensor, sigma: Tensor,
                             deterministic: bool = False) -> Tensor:
         self.proba_distribution(mu, sigma)
+        actions = self.get_actions(deterministic = deterministic)
+        print('actions size: ', actions.size())
+        print('actions type: ', type(actions))
         return self.get_actions(deterministic = deterministic)
 
     def log_prob_from_params(self, mu, sigma):
@@ -81,7 +85,6 @@ class CustomSACActor(SACActor):
         latent_pi = self.latent_pi(features)
         vec12 = self.vec16(latent_pi)
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
-        sigma = torch.reshape(torch.diag(sigma[0]), (1, 3, 3))
         print(mu.size())
         print(sigma.size())
         return mu, sigma, {}
