@@ -103,7 +103,7 @@ class Wahba(gym.Env):
     def __init__(self):
         super(Wahba, self).__init__()
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(3,3), dtype=np.float32)
+            low=-1.0, high=1.0, shape=(4,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(2, 3, N_MATCHES_PER_SAMPLE),
             dtype=np.float32)
@@ -128,6 +128,13 @@ class Wahba(gym.Env):
         return C, x_1, x_2
 
     def step(self, action):
+        # print('action: ', action)
+        # print('action type: ', type(action))
+        # print('action size: ', action.shape)
+        # print('action len: ', len(action.shape))
+        # if len(action.shape) == 3:
+        #     r = R.from_matrix(action)
+        #     action = r.as_quat()
         action /= np.linalg.norm(action, axis=0)
         w, x, y, z = action
         loss = quat_chordal_squared_loss(

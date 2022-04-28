@@ -24,8 +24,6 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
-        print('mu: ', self.mu.size())
-        print('sigma: ', self.sigma.size())
         log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
         return log_prob
 
@@ -34,28 +32,27 @@ class TangentSpaceGaussian(Distribution):
 
     def sample(self) -> Tensor:
         """Need to be implemented"""
-        print('self.sigma size: ', self.sigma.size())
-        s = self.distribution.rsample(self.mu, self.sigma)
-        return s
+        s, s_mat = self.distribution.rsample(self.mu, self.sigma)
+        return s, s_mat
 
     """What is this mode function"""
     def mode(self) -> Tensor:
         return self.mu
 
-
     """Need to be clear with these functions parameters"""
     def actions_from_params(self, mu: Tensor, sigma: Tensor,
                             deterministic: bool = False) -> Tensor:
         self.proba_distribution(mu, sigma)
-        actions = self.get_actions(deterministic = deterministic)
-        print('actions size: ', actions.size())
-        print('actions type: ', type(actions))
+        # actions = self.get_actions(deterministic = deterministic)
+        # print('actions size: ', actions.size())
+        # print('actions type: ', type(actions))
         return self.get_actions(deterministic = deterministic)
 
     def log_prob_from_params(self, mu, sigma):
-        actions = self.actions_from_params(mu, sigma)
-        print('actions: ', actions.size())
-        log_prob = self.log_prob(actions)
+        actions, actions_mat = self.actions_from_params(mu, sigma)
+        print('actions: ', actions)
+        print('actions_mat: ', actions_mat)
+        log_prob = self.log_prob(actions_mat)
         return actions, log_prob
 
 class CustomSACActor(SACActor):
@@ -85,15 +82,13 @@ class CustomSACActor(SACActor):
         latent_pi = self.latent_pi(features)
         vec12 = self.vec16(latent_pi)
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
-        print(mu.size())
-        print(sigma.size())
         return mu, sigma, {}
 
     def forward(self, obs: Tensor, deterministic: bool = False) -> Tensor:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
         return self.action_dist.actions_from_params(mu, sigma,
                                                     deterministic = deterministic,
-                                                    **kwargs)
+                                                    **kwargs)[0]
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
