@@ -2,8 +2,11 @@ import torch
 import numpy as np
 from liegroups.torch import SO3
 from scipy.spatial.transform import Rotation as R
+# from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
 
-
+"""Test liegroup exp: correct"""
+"""Test liegroup log: correct (should be correct based on relationship between exp and log)"""
+"""Test scipy transform: #TODO"""
 class TangentSpaceGaussian(object):
     """ Finish the batch version of tangent space Gaussian """
     def __init__(self, device: torch.device):
@@ -46,6 +49,7 @@ class TangentSpaceGaussian(object):
         omega = torch.normal(torch.zeros(3), sigma)
         # print(R_mu.size())
         R_x = torch.matmul(R_mu, SO3.exp(omega).as_matrix())
+        print(R_x.size())
         R_x_copy = R_x.clone().detach()
         r = R.from_matrix(R_x_copy)
         R_quat = torch.Tensor(r.as_quat())
