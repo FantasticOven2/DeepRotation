@@ -65,7 +65,7 @@ class CustomSACActor(SACActor):
         del self.mu
         last_layer_dim = self.net_arch[-1] if len(
             self.net_arch) > 0 else self.features_dim
-        self.vec16 = nn.Linear(last_layer_dim, 12)
+        self.vec12 = nn.Linear(last_layer_dim, 12)
         self.action_dist = None
 
     def get_std(self) -> Tensor:
@@ -80,7 +80,8 @@ class CustomSACActor(SACActor):
             self.action_dist = TangentSpaceGaussian(self.device)
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
-        vec12 = self.vec16(latent_pi)
+        vec12 = self.vec12(latent_pi)
+        print(vec12)
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
         return mu, sigma, {}
 
