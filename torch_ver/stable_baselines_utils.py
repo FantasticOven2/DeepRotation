@@ -50,8 +50,8 @@ class TangentSpaceGaussian(Distribution):
 
     def log_prob_from_params(self, mu, sigma):
         actions, actions_mat = self.actions_from_params(mu, sigma)
-        print('actions: ', actions)
-        print('actions_mat: ', actions_mat)
+        # print('actions: ', actions)
+        # print('actions_mat: ', actions_mat)
         log_prob = self.log_prob(actions_mat)
         return actions, log_prob
 
@@ -78,18 +78,23 @@ class CustomSACActor(SACActor):
         Tensor, Tensor, Dict[str, Tensor]]:
         if self.action_dist is None:
             self.action_dist = TangentSpaceGaussian(self.device)
+        print('obs: ', obs)
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
         vec12 = self.vec12(latent_pi)
-        print(vec12)
+        # print(vec12)
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
+        print('mu: ', mu)
+        print('sigma: ', sigma)
         return mu, sigma, {}
 
     def forward(self, obs: Tensor, deterministic: bool = False) -> Tensor:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
-        return self.action_dist.actions_from_params(mu, sigma,
+        action = self.action_dist.actions_from_params(mu, sigma,
                                                     deterministic = deterministic,
                                                     **kwargs)[0]
+        print('action: ', action)
+        return action
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
