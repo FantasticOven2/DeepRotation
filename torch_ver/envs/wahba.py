@@ -140,6 +140,7 @@ class Wahba(gym.Env):
         loss = quat_chordal_squared_loss(
             torch.tensor([x, y, z, w], dtype=self._q_target.dtype),
             self._q_target)
+        # print('loss: ', loss)
         rew = -loss.item()
         return self._obs, rew, True, {}
 

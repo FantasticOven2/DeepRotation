@@ -7,4 +7,4 @@ def vec12_to_mu_sigma(output):
     sigma = output[:, :3]
     mu = gram_schmidt(output[:, 3:].reshape(bs, 3, 3)) # Some Orthogonal projection process
     # print('vec: ', sigma.size(), mu.size())
-    return mu, torch.abs(sigma)
+    return mu, torch.abs(sigma) + 1e-4

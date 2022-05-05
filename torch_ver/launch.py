@@ -26,7 +26,7 @@ def main(argv):
         policy_kwargs['share_features_extractor'] = False
         policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
         model = SAC(policy, env, verbose=1, ent_coef='auto_0.1',
-                    policy_kwargs=policy_kwargs, device=device, tensorboard_log = './tb/sac')
+                    policy_kwargs=policy_kwargs, device=device, tensorboard_log = './tb')
     else:
         policy = 'MlpPolicy' if FLAGS.alg == 'ppo' else CustomActorCriticPolicy
         model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs,
