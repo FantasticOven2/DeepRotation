@@ -46,8 +46,10 @@ class TangentSpaceGaussian(object):
         """ Sample a rotation using tangent space Gaussian
             Return a skew symmetric matrix.
         """
+        dev = sigma.get_device()
+        print("DEVICE is: ", sigma.get_device())
         # print('sigma: ', sigma)
-        omega = torch.normal(torch.zeros(3), sigma)
+        omega = torch.normal(torch.zeros(3), sigma).to(dev)
         # print(R_mu.size())
         R_x = torch.matmul(R_mu, SO3.exp(omega).as_matrix())
         # print(R_x.size())

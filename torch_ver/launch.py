@@ -4,7 +4,7 @@ from absl import flags
 from stable_baselines3 import SAC, PPO
 
 from envs.wahba import Wahba
-from stable_baselines_utils import CustomSACPolicy, CustomActorCriticPolicy, \
+from stable_baselines_utils import CustomSACPolicy, \
     CustomCNN
 
 FLAGS = flags.FLAGS
