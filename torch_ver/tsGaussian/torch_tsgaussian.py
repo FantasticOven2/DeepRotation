@@ -46,6 +46,7 @@ class TangentSpaceGaussian(object):
         """ Sample a rotation using tangent space Gaussian
             Return a skew symmetric matrix.
         """
+        # dev = torch.device('cpu')
         dev = sigma.get_device()
         # print('sigma: ', sigma)
         omega = torch.normal(torch.zeros(3, device=dev), sigma)
@@ -72,6 +73,7 @@ class TangentSpaceGaussian(object):
         # print('log map size: ', SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2))).size())
         # print('log map type: ', type(SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))))
         dev = R_1.get_device()
+        # dev = torch.device('cpu')
         R_1_cpu, R_2_cpu = R_1.cpu(), R_2.cpu()
         return SO3.log(SO3(torch.bmm(torch.transpose(R_1_cpu, 1, 2), R_2_cpu))).to(dev)
 
@@ -82,17 +84,18 @@ class TangentSpaceGaussian(object):
 
         log_term = self.log_map(R_x, R_mu)
         # print('log size: ', log_term.size())
-        print('log_term: ', log_term)
+        # print('log_term: ', log_term.size())
         batch_size = R_x.shape[0]
         # sigma_batch = sigma.repeat(batch_size, 1)
         # print(batch_size)
         # print('sigma_batch size: ', sigma_batch.size())
         sigma_mat = torch.diag_embed(sigma)
-        print('sigma_mat: ', sigma_mat)
+        # print('sigma_mat: ', sigma_mat)
         # first_term = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
         #             log_term.reshape(batch_size, log_term.shape[1], 1)).size()
         # second_term = torch.log(self.normal_term(sigma)).size()
-        log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
-                    log_term.reshape(batch_size, log_term.shape[1], 1)).reshape((batch_size,)) - torch.log(self.normal_term(sigma))
-        print('log_prob: ', log_prob)
-        return log_prob
+        # print('sigma_mat_inv: ', torch.linalg.inv(sigma_mat))
+        log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
+                    log_term.reshape(batch_size, 3, 1)).reshape((batch_size,)) - torch.log(self.normal_term(sigma))
+        # print('log_prob: ', log_prob)
+        return log_prob, (log_term, torch.linalg.inv(sigma_mat), sigma_mat, self.normal_term(sigma))

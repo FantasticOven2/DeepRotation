@@ -24,8 +24,8 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
-        log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
-        return log_prob
+        log_prob, tup= self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
+        return log_prob, tup
 
     def entropy(self) -> Tensor:
         raise NotImplementedError('Not needed.')
@@ -52,8 +52,8 @@ class TangentSpaceGaussian(Distribution):
         actions, actions_mat = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
         # print('actions_mat: ', actions_mat)
-        log_prob = self.log_prob(actions_mat)
-        return actions, log_prob
+        log_prob, tup = self.log_prob(actions_mat)
+        return actions, log_prob, tup
 
 class CustomSACActor(SACActor):
 
@@ -82,7 +82,7 @@ class CustomSACActor(SACActor):
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
         vec12 = self.vec12(latent_pi)
-        # print('vec12: ', vec12)
+        print('vec12_elem: ', vec12[0][1])
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
         # print('mu: ', mu)
         # print('sigma: ', sigma)
@@ -98,8 +98,8 @@ class CustomSACActor(SACActor):
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
-        a, lp = self.action_dist.log_prob_from_params(mu, sigma, **kwargs)
-        return a, lp
+        a, lp, tup = self.action_dist.log_prob_from_params(mu, sigma, **kwargs)
+        return a, lp, tup
 
     def _predict(self, observation: Tensor,
                     deterministic: bool = False) -> Tensor:
