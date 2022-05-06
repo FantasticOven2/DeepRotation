@@ -142,6 +142,7 @@ class Wahba(gym.Env):
             self._q_target)
         # print('loss: ', loss)
         rew = -loss.item()
+        print('rew: ', rew)
         return self._obs, rew, True, {}
 
     def reset(self):

@@ -117,4 +117,6 @@ class CustomCNN(BaseFeaturesExtractor):
         self._model = PointNet(features_dim)
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        return self._model(observations)
+        pred = self._model(observations)
+        # print('target: ', self._model(observations))
+        return pred

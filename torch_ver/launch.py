@@ -2,6 +2,8 @@ import torch
 from absl import app
 from absl import flags
 from stable_baselines3 import SAC, PPO
+from torch import autograd
+
 
 from envs.wahba import Wahba
 from stable_baselines_utils import CustomSACPolicy, \
@@ -36,4 +38,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    app.run(main)
+    with autograd.detect_anomaly():
+        app.run(main)

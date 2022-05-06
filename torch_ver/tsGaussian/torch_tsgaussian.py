@@ -82,14 +82,17 @@ class TangentSpaceGaussian(object):
 
         log_term = self.log_map(R_x, R_mu)
         # print('log size: ', log_term.size())
+        print('log_term: ', log_term)
         batch_size = R_x.shape[0]
         # sigma_batch = sigma.repeat(batch_size, 1)
         # print(batch_size)
         # print('sigma_batch size: ', sigma_batch.size())
         sigma_mat = torch.diag_embed(sigma)
+        print('sigma_mat: ', sigma_mat)
         # first_term = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
         #             log_term.reshape(batch_size, log_term.shape[1], 1)).size()
         # second_term = torch.log(self.normal_term(sigma)).size()
         log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
                     log_term.reshape(batch_size, log_term.shape[1], 1)).reshape((batch_size,)) - torch.log(self.normal_term(sigma))
+        print('log_prob: ', log_prob)
         return log_prob
