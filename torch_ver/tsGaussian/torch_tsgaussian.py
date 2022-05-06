@@ -47,15 +47,14 @@ class TangentSpaceGaussian(object):
             Return a skew symmetric matrix.
         """
         dev = sigma.get_device()
-        print("DEVICE is: ", sigma.get_device())
         # print('sigma: ', sigma)
-        omega = torch.normal(torch.zeros(3), sigma).to(dev)
+        omega = torch.normal(torch.zeros(3, device=dev), sigma)
         # print(R_mu.size())
-        R_x = torch.matmul(R_mu, SO3.exp(omega).as_matrix())
+        R_x = torch.matmul(R_mu, SO3.exp(omega.cpu()).as_matrix().to(dev))
         # print(R_x.size())
-        R_x_copy = R_x.clone().detach()
+        R_x_copy = R_x.cpu().clone().detach()
         r = R.from_matrix(R_x_copy)
-        R_quat = torch.Tensor(r.as_quat())
+        R_quat = torch.Tensor(r.as_quat()).to(dev)
         return R_quat, R_x
 
     def normal_term(self, sigma):
@@ -72,7 +71,9 @@ class TangentSpaceGaussian(object):
         # print('exp map size: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2).size())
         # print('log map size: ', SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2))).size())
         # print('log map type: ', type(SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))))
-        return SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))
+        dev = R_1.get_device()
+        R_1_cpu, R_2_cpu = R_1.cpu(), R_2.cpu()
+        return SO3.log(SO3(torch.bmm(torch.transpose(R_1_cpu, 1, 2), R_2_cpu))).to(dev)
 
     def log_probs(self, R_x, R_mu, sigma):
         """ Log probability of a given R_x with mean R_mu
