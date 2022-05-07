@@ -1,11 +1,18 @@
-import torch
-import gym
+from functools import partial
 from typing import Tuple, Dict
-from stable_baselines3.common.distributions import Distribution
-from tsGaussian import torch_tsgaussian, utils
-from torch import nn, Tensor
-from stable_baselines3.sac.policies import Actor as SACActor, MlpPolicy
+
+import gym
+import numpy as np
+import torch
+from stable_baselines3.common.distributions import \
+    Distribution
+from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.type_aliases import Schedule
+from stable_baselines3.sac.policies import Actor as SACActor, MlpPolicy
+from torch import nn, Tensor
+
+from tsGaussian import torch_tsgaussian, utils
 from models import PointNet
 
 class TangentSpaceGaussian(Distribution):
@@ -51,7 +58,7 @@ class TangentSpaceGaussian(Distribution):
     def log_prob_from_params(self, mu, sigma):
         actions, actions_mat = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
-        # print('actions_mat: ', actions_mat)
+        print('actions_mat: ', actions_mat)
         log_prob, tup = self.log_prob(actions_mat)
         return actions, log_prob, tup
 
@@ -111,6 +118,53 @@ class CustomSACPolicy(MlpPolicy):
             self.actor_kwargs, features_extractor)
         return CustomSACActor(**actor_kwargs).to(self.device)
 
+class CustomActorCriticPolicy(ActorCriticPolicy):
+
+    def __init__(self, *args, **kwargs):
+        super(CustomActorCriticPolicy, self).__init__(*args, **kwargs)
+        assert not self.use_sde
+
+    def _build(self, lr_schedule: Schedule) -> None:
+        self._build_mlp_extractor()
+
+        latent_dim_pi = self.mlp_extractor.latent_dim_pi
+        self.action_dist = None
+        self.action_net = nn.Linear(latent_dim_pi, 12)
+        self.value_net = nn.Linear(self.mlp_extractor.latent_dim_vf, 1)
+
+        if self.ortho_init:
+            module_gains = {
+                self.features_extractor: np.sqrt(2),
+                self.mlp_extractor: np.sqrt(2),
+                self.action_net: 0.01,
+                self.value_net: 1,
+            }
+            for module, gain in module_gains.items():
+                module.apply(partial(self.init_weights, gain=gain))
+
+        # Setup optimizer with initial learning rate
+        self.optimizer = self.optimizer_class(self.parameters(),
+                                              lr=lr_schedule(1),
+                                              **self.optimizer_kwargs)
+
+    def forward(self, obs: Tensor, deterministic: bool = False) -> Tuple[
+        Tensor, Tensor, Tensor]:
+        if self.action_dist is None:
+            self.action_dist = TangentSpaceGaussian(self.device)
+        features = self.extract_features(obs)
+        latent_pi, latent_vf = self.mlp_extractor(features)
+        values = self.value_net(latent_vf)
+        distribution = self._get_action_dist_from_latent(latent_pi)
+        actions = distribution.get_actions(deterministic=deterministic)
+        log_prob = distribution.log_prob(actions)
+        return actions, values, log_prob
+
+    def _get_action_dist_from_latent(self, latent_pi: Tensor) -> Distribution:
+        vec12 = self.action_net(latent_pi)
+        mu, sigma = utils.vec12_to_mu_sigma(vec12)
+        return self.action_dist.proba_distribution(mu, sigma)
+
+
 class CustomCNN(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super(CustomCNN, self).__init__(observation_space, features_dim)
@@ -118,5 +172,4 @@ class CustomCNN(BaseFeaturesExtractor):
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         pred = self._model(observations)
-        # print('target: ', self._model(observations))
         return pred
