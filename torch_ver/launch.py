@@ -28,12 +28,12 @@ def main(argv):
         policy_kwargs['share_features_extractor'] = False
         policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
         model = SAC(policy, env, verbose=1, ent_coef='auto_0.1',
-                    policy_kwargs=policy_kwargs, device=device, tensorboard_log = './tb')
+                    policy_kwargs=policy_kwargs, device=device)
     else:
         policy = 'MlpPolicy' if FLAGS.alg == 'ppo' else CustomActorCriticPolicy
         model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs,
                     device=device)
-    model.learn(total_timesteps=200, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
+    model.learn(total_timesteps=50000, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
     # model.save('./sac_500thsd_wahba')
 
 

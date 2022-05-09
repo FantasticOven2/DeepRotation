@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from liegroups.torch import SO3
-from scipy.spatial.transform import Rotation as R
-# from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
+# from liegroups.torch import SO3
+# from scipy.spatial.transform import Rotation as R
+from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
+from pytorch3d.transforms import matrix_to_quaternion
 
 """Test liegroup exp: correct"""
 """Test liegroup log: correct (should be correct based on relationship between exp and log)"""
@@ -11,33 +12,33 @@ class TangentSpaceGaussian(object):
     """ Finish the batch version of tangent space Gaussian """
     def __init__(self, device: torch.device):
         return
+    #
+    # def vec_to_skew(self, omega: torch.Tensor) -> torch.Tensor:
+    #     """ Convert vector to skew symmetric matrices """
+    #     (*batch_axes, dim) = omega.shape
+    #     assert dim == 3
+    #
+    #     omega_hat = torch.zeros((*batch_axes, dim, dim))
+    #     omega_hat[..., 0, 1] = -omega[..., 2]
+    #     omega_hat[..., 1, 0] = omega[..., 2]
+    #     omega_hat[..., 0, 2] = omega[..., 1]
+    #     omega_hat[..., 2, 0] = -omega[..., 1]
+    #     omega_hat[..., 1, 2] = -omega[..., 0]
+    #     omega_hat[..., 2, 1] = omega[..., 0]
+    #
+    #     assert omega_hat.shape == (*batch_axes, dim, dim)
+    #     return omega_hat
 
-    def vec_to_skew(self, omega: torch.Tensor) -> torch.Tensor:
-        """ Convert vector to skew symmetric matrices """
-        (*batch_axes, dim) = omega.shape
-        assert dim == 3
-
-        omega_hat = torch.zeros((*batch_axes, dim, dim))
-        omega_hat[..., 0, 1] = -omega[..., 2]
-        omega_hat[..., 1, 0] = omega[..., 2]
-        omega_hat[..., 0, 2] = omega[..., 1]
-        omega_hat[..., 2, 0] = -omega[..., 1]
-        omega_hat[..., 1, 2] = -omega[..., 0]
-        omega_hat[..., 2, 1] = omega[..., 0]
-
-        assert omega_hat.shape == (*batch_axes, dim, dim)
-        return omega_hat
-
-    def skew_to_vec(self, omiga_hat: torch.Tensor) -> torch.Tensor:
-        (*batch_axes, dim, dim) = omega_hat.shape
-        assert dim == 3
-
-        omega = torch.zeros((*batch_axes, dim))
-        omega[..., 0] = omega_hat[..., 2, 1]
-        omega[..., 1] = omega_hat[..., 0, 2]
-        omega[..., 2] = omega_hat[..., 1, 0]
-
-        return omega
+    # def skew_to_vec(self, omiga_hat: torch.Tensor) -> torch.Tensor:
+    #     (*batch_axes, dim, dim) = omega_hat.shape
+    #     assert dim == 3
+    #
+    #     omega = torch.zeros((*batch_axes, dim))
+    #     omega[..., 0] = omega_hat[..., 2, 1]
+    #     omega[..., 1] = omega_hat[..., 0, 2]
+    #     omega[..., 2] = omega_hat[..., 1, 0]
+    #
+    #     return omega
 
     # def mat_to_quat(self, mat: torch.Tensor) -> torch.Tensor:
 
@@ -51,11 +52,11 @@ class TangentSpaceGaussian(object):
         # print('sigma: ', sigma)
         omega = torch.normal(torch.zeros(3, device=dev), sigma)
         # print(R_mu.size())
-        R_x = torch.matmul(R_mu, SO3.exp(omega.cpu()).as_matrix().to(dev))
+        R_x = torch.matmul(R_mu, so3_exp_map(omega))
         # print(R_x.size())
-        R_x_copy = R_x.cpu().clone().detach()
-        r = R.from_matrix(R_x_copy)
-        R_quat = torch.Tensor(r.as_quat()).to(dev)
+        # R_x_copy = R_x.clone().detach()
+        # r = R.from_matrix(R_x_copy
+        R_quat = matrix_to_quaternion(R_x)
         return R_quat, R_x
 
     def normal_term(self, sigma):
@@ -74,8 +75,8 @@ class TangentSpaceGaussian(object):
         # print('log map type: ', type(SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))))
         dev = R_1.get_device()
         # dev = torch.device('cpu')
-        R_1_cpu, R_2_cpu = R_1.cpu(), R_2.cpu()
-        return SO3.log(SO3(torch.bmm(torch.transpose(R_1_cpu, 1, 2), R_2_cpu))).to(dev)
+        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2))
+        # return SO3.log(SO3(torch.bmm(torch.transpose(R_1_cpu, 1, 2), R_2_cpu))).to(dev)
 
     def log_probs(self, R_x, R_mu, sigma):
         """ Log probability of a given R_x with mean R_mu
