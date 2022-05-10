@@ -31,11 +31,13 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
-        log_prob, tup= self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
-        return log_prob, tup
+        print('mu dim: ', self.mu.size())
+        print('action dim: ', actions.size())
+        log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
+        return log_prob
 
     def entropy(self) -> Tensor:
-        raise NotImplementedError('Not needed.')
+        return None
 
     def sample(self) -> Tensor:
         """Need to be implemented"""
@@ -58,9 +60,9 @@ class TangentSpaceGaussian(Distribution):
     def log_prob_from_params(self, mu, sigma):
         actions, actions_mat = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
-        print('actions_mat: ', actions_mat)
-        log_prob, tup = self.log_prob(actions_mat)
-        return actions, log_prob, tup
+        # print('actions_mat: ', actions_mat)
+        log_prob = self.log_prob(actions_mat)
+        return actions, log_prob
 
 class CustomSACActor(SACActor):
 
@@ -105,8 +107,8 @@ class CustomSACActor(SACActor):
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
-        a, lp, tup = self.action_dist.log_prob_from_params(mu, sigma, **kwargs)
-        return a, lp, tup
+        a, lp = self.action_dist.log_prob_from_params(mu, sigma, **kwargs)
+        return a, lp
 
     def _predict(self, observation: Tensor,
                     deterministic: bool = False) -> Tensor:
@@ -155,8 +157,10 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         latent_pi, latent_vf = self.mlp_extractor(features)
         values = self.value_net(latent_vf)
         distribution = self._get_action_dist_from_latent(latent_pi)
-        actions = distribution.get_actions(deterministic=deterministic)
-        log_prob = distribution.log_prob(actions)
+        actions, actions_mat = distribution.get_actions(deterministic=deterministic)
+        # print(actions.shape)
+        # print('actions size: ', actions.shape)
+        log_prob = distribution.log_prob(actions_mat)
         return actions, values, log_prob
 
     def _get_action_dist_from_latent(self, latent_pi: Tensor) -> Distribution:

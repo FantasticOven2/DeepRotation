@@ -3,7 +3,7 @@ import numpy as np
 # from liegroups.torch import SO3
 # from scipy.spatial.transform import Rotation as R
 from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
-from pytorch3d.transforms import matrix_to_quaternion
+from pytorch3d.transforms import matrix_to_quaternion, quaternion_to_matrix
 
 """Test liegroup exp: correct"""
 """Test liegroup log: correct (should be correct based on relationship between exp and log)"""
@@ -47,15 +47,12 @@ class TangentSpaceGaussian(object):
         """ Sample a rotation using tangent space Gaussian
             Return a skew symmetric matrix.
         """
-        # dev = torch.device('cpu')
         dev = sigma.get_device()
-        # print('sigma: ', sigma)
-        omega = torch.normal(torch.zeros(3, device=dev), sigma)
-        # print(R_mu.size())
+        if dev == 0:
+            omega = torch.normal(torch.zeros(3, device=dev), sigma)
+        else:
+            omega = torch.normal(torch.zeros(3), sigma)
         R_x = torch.matmul(R_mu, so3_exp_map(omega))
-        # print(R_x.size())
-        # R_x_copy = R_x.clone().detach()
-        # r = R.from_matrix(R_x_copy
         R_quat = matrix_to_quaternion(R_x)
         return R_quat, R_x
 
@@ -70,13 +67,14 @@ class TangentSpaceGaussian(object):
         """ Log map term in pdf of tangent space Gaussian
             Return a 3d vector.
         """
-        # print('exp map size: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2).size())
-        # print('log map size: ', SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2))).size())
-        # print('log map type: ', type(SO3.log(SO3(torch.bmm(torch.transpose(R_1, 1, 2), R_2)))))
-        dev = R_1.get_device()
-        # dev = torch.device('cpu')
-        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2))
-        # return SO3.log(SO3(torch.bmm(torch.transpose(R_1_cpu, 1, 2), R_2_cpu))).to(dev)
+        print('R_1 size: ', R_1.size())
+        print('R_2 size: ', R_2.size())
+        if (len(R_1.shape) == 2):
+            R_1 = quaternion_to_matrix(R_1)
+        print('exp result: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2))
+        rot_mat = torch.bmm(torch.transpose(R_1, 1, 2), R_2)
+        print('should be identtiy: ', torch.bmm(torch.transpose(rot_mat, 1, 2), rot_mat))
+        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.01)
 
     def log_probs(self, R_x, R_mu, sigma):
         """ Log probability of a given R_x with mean R_mu
@@ -84,19 +82,11 @@ class TangentSpaceGaussian(object):
         """
 
         log_term = self.log_map(R_x, R_mu)
-        # print('log size: ', log_term.size())
-        # print('log_term: ', log_term.size())
         batch_size = R_x.shape[0]
-        # sigma_batch = sigma.repeat(batch_size, 1)
-        # print(batch_size)
-        # print('sigma_batch size: ', sigma_batch.size())
         sigma_mat = torch.diag_embed(sigma)
-        # print('sigma_mat: ', sigma_mat)
-        # first_term = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, log_term.shape[1])), torch.linalg.inv(sigma_mat)), \
-        #             log_term.reshape(batch_size, log_term.shape[1], 1)).size()
-        # second_term = torch.log(self.normal_term(sigma)).size()
-        # print('sigma_mat_inv: ', torch.linalg.inv(sigma_mat))
         log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
                     log_term.reshape(batch_size, 3, 1)).reshape((batch_size,)) - torch.log(self.normal_term(sigma))
-        # print('log_prob: ', log_prob)
-        return log_prob, (log_term, torch.linalg.inv(sigma_mat), sigma_mat, self.normal_term(sigma))
+        return log_prob
+
+    def entropy(self, mu, sigma):
+        return None

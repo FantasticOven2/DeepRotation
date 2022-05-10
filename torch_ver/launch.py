@@ -7,7 +7,7 @@ from torch import autograd
 
 from envs.wahba import Wahba
 from stable_baselines_utils import CustomSACPolicy, \
-    CustomCNN
+    CustomCNN, CustomActorCriticPolicy
 
 FLAGS = flags.FLAGS
 
@@ -23,17 +23,20 @@ def main(argv):
         features_extractor_class=CustomCNN,
         features_extractor_kwargs=dict(features_dim=256),
     )
-    if 'sac' in FLAGS.alg:
-        policy_kwargs['n_critics'] = 1
-        policy_kwargs['share_features_extractor'] = False
-        policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
-        model = SAC(policy, env, verbose=1, ent_coef='auto_0.1',
-                    policy_kwargs=policy_kwargs, device=device)
-    else:
-        policy = 'MlpPolicy' if FLAGS.alg == 'ppo' else CustomActorCriticPolicy
-        model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs,
-                    device=device)
-    model.learn(total_timesteps=50000, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
+    # if 'sac' in FLAGS.alg:
+    #     print('SAC')
+    #     policy_kwargs['n_critics'] = 1
+    #     policy_kwargs['share_features_extractor'] = False
+    #     policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
+    #     model = SAC(policy, env, verbose=1, ent_coef=0.1,
+    #                 policy_kwargs=policy_kwargs, device=device)
+    # else:
+        # print('PPO')
+    # policy = 'MlpPolicy' if FLAGS.alg == 'ppo' else CustomActorCriticPolicy
+    policy = CustomActorCriticPolicy
+    model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs, ent_coef=0.0,
+                device=device)
+    model.learn(total_timesteps=200, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
     # model.save('./sac_500thsd_wahba')
 
 
