@@ -89,10 +89,14 @@ def quat_norm_diff(q_a, q_b):
 
 
 def quat_chordal_squared_loss(q, q_target, reduce=True):
+    print('q: ', q)
+    q_target = rotmat_to_quat(torch.eye(3))
+    print('q_target: ', q_target)
     assert (q.shape == q_target.shape)
     d = quat_norm_diff(q, q_target)
     losses = 2 * d * d * (4. - d * d)
     loss = losses.mean() if reduce else losses
+    print(loss)
     return loss
 
 
@@ -136,6 +140,7 @@ class Wahba(gym.Env):
         #     r = R.from_matrix(action)
         #     action = r.as_quat()
         action /= np.linalg.norm(action, axis=0)
+        print('action: ', action)
         w, x, y, z = action
         loss = quat_chordal_squared_loss(
             torch.tensor([x, y, z, w], dtype=self._q_target.dtype),

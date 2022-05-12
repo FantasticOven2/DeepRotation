@@ -31,8 +31,6 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
-        print('mu dim: ', self.mu.size())
-        print('action dim: ', actions.size())
         log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
         return log_prob
 
@@ -62,6 +60,8 @@ class TangentSpaceGaussian(Distribution):
         # print('actions: ', actions)
         # print('actions_mat: ', actions_mat)
         log_prob = self.log_prob(actions_mat)
+        print('log prob: ', log_prob[0])
+        print('prob: ', np.e ** log_prob[0])
         return actions, log_prob
 
 class CustomSACActor(SACActor):
@@ -91,7 +91,7 @@ class CustomSACActor(SACActor):
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
         vec12 = self.vec12(latent_pi)
-        print('vec12_elem: ', vec12[0][1])
+        # print('vec12_elem: ', vec12[0][1])
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
         # print('mu: ', mu)
         # print('sigma: ', sigma)

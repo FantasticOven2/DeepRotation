@@ -67,21 +67,26 @@ class TangentSpaceGaussian(object):
         """ Log map term in pdf of tangent space Gaussian
             Return a 3d vector.
         """
-        print('R_1 size: ', R_1.size())
-        print('R_2 size: ', R_2.size())
-        if (len(R_1.shape) == 2):
-            R_1 = quaternion_to_matrix(R_1)
-        print('exp result: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2))
+        # print('R_1 size: ', R_1.size())
+        # print('R_2 size: ', R_2.size())
+        # if (len(R_2.shape) == 2):
+        #     R_2 = quaternion_to_matrix(R_1)
+        # print('identity: ', quaternion_to_matrix(torch.Tensor([0,0,0,1])))
+        # print('identity quat: ', matrix_to_quaternion(torch.eye(3)))
+        # print('exp result: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2))
         rot_mat = torch.bmm(torch.transpose(R_1, 1, 2), R_2)
-        print('should be identtiy: ', torch.bmm(torch.transpose(rot_mat, 1, 2), rot_mat))
-        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.01)
+        # print(rot_mat[0])
+        # print(R_2[0])
+        # print((rot_mat != R_2).any())
+        # print('should be identtiy: ', torch.bmm(torch.transpose(rot_mat, 1, 2), rot_mat))
+        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.0001)
 
     def log_probs(self, R_x, R_mu, sigma):
         """ Log probability of a given R_x with mean R_mu
             Return a probability
         """
 
-        log_term = self.log_map(R_x, R_mu)
+        log_term = self.log_map(R_mu, R_x)
         batch_size = R_x.shape[0]
         sigma_mat = torch.diag_embed(sigma)
         log_prob = torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
