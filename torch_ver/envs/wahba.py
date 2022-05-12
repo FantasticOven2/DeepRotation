@@ -89,9 +89,6 @@ def quat_norm_diff(q_a, q_b):
 
 
 def quat_chordal_squared_loss(q, q_target, reduce=True):
-    print('q: ', q)
-    q_target = rotmat_to_quat(torch.eye(3))
-    print('q_target: ', q_target)
     assert (q.shape == q_target.shape)
     d = quat_norm_diff(q, q_target)
     losses = 2 * d * d * (4. - d * d)
@@ -154,7 +151,10 @@ class Wahba(gym.Env):
         C_train, x_1_train, x_2_train = self._gen_sim_data_fast(
             1, N_MATCHES_PER_SAMPLE, 1e-2, max_rotation_angle=180)
         self._q_target = rotmat_to_quat(C_train, ordering='xyzw')
-        self._obs = np.concatenate([x_1_train, x_2_train])
+        self._q_target = rotmat_to_quat(torch.eye(3))
+        # self._obs = np.concatenate([x_1_train, x_2_train])
+        self._obs = np.concatenate([x_1_train, x_1_train])
+        # self._obs = np.concatenate([torch.ones(1, 3, 100), torch.ones(1, 3, 100)])
         return self._obs
 
     def render(self, mode='human', close=False):

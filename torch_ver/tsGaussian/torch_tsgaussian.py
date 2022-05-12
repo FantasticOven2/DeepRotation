@@ -48,10 +48,11 @@ class TangentSpaceGaussian(object):
             Return a skew symmetric matrix.
         """
         dev = sigma.get_device()
-        if dev == 0:
-            omega = torch.normal(torch.zeros(3, device=dev), sigma)
-        else:
-            omega = torch.normal(torch.zeros(3), sigma)
+        if dev == -1:
+            dev = 'cpu'
+        omega = torch.normal(torch.zeros(3, device=dev), sigma)
+        R_mu = R_mu.to(dev)
+        # print('DEV: ', R_mu.get_device(), so3_exp_map(omega).get_device())
         R_x = torch.matmul(R_mu, so3_exp_map(omega))
         R_quat = matrix_to_quaternion(R_x)
         return R_quat, R_x
@@ -85,7 +86,8 @@ class TangentSpaceGaussian(object):
         """ Log probability of a given R_x with mean R_mu
             Return a probability
         """
-
+        dev = R_x.get_device()
+        R_mu = R_mu.to(dev)
         log_term = self.log_map(R_mu, R_x)
         batch_size = R_x.shape[0]
         sigma_mat = torch.diag_embed(sigma)
