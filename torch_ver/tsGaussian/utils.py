@@ -15,6 +15,5 @@ def vec12_to_mu_sigma(output):
     print('sigma before: ', sigma[0])
     print('sigma after: ', softPlus(sigma)[0])
     sigma = softPlus(sigma)
-    max_val = 10
-    sigma = 10 * torch.tanh(sigma)
+    # sigma = 10 * torch.tanh(sigma)
     return mu, sigma

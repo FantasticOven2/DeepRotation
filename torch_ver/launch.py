@@ -38,7 +38,7 @@ def main(argv):
         # policy = CustomActorCriticPolicy
         model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs, ent_coef='auto_0.1',
                 device=device)
-    model.learn(total_timesteps=10000, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
+    model.learn(total_timesteps=500, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
     # model.save('./sac_500thsd_wahba')
 
 

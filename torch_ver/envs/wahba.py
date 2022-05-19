@@ -124,20 +124,13 @@ class Wahba(gym.Env):
             C = C.unsqueeze(dim=0)
         x_1 = torch.randn(N_rotations, 3, N_matches_per_rotation, dtype=dtype)
         x_1 = x_1 / x_1.norm(dim=1, keepdim=True)
-        noise = sigma * torch.randn_like(x_1)
+        # noise = sigma * torch.randn_like(x_1)
+        noise = 0 
         x_2 = C.bmm(x_1) + noise
         return C, x_1, x_2
 
     def step(self, action):
-        # print('action: ', action)
-        # print('action type: ', type(action))
-        # print('action size: ', action.shape)
-        # print('action len: ', len(action.shape))
-        # if len(action.shape) == 3:
-        #     r = R.from_matrix(action)
-        #     action = r.as_quat()
         action /= np.linalg.norm(action, axis=0)
-        print('action: ', action)
         w, x, y, z = action
         loss = quat_chordal_squared_loss(
             torch.tensor([x, y, z, w], dtype=self._q_target.dtype),
@@ -151,7 +144,7 @@ class Wahba(gym.Env):
         C_train, x_1_train, x_2_train = self._gen_sim_data_fast(
             1, N_MATCHES_PER_SAMPLE, 1e-2, max_rotation_angle=180)
         self._q_target = rotmat_to_quat(C_train, ordering='xyzw')
-        self._q_target = rotmat_to_quat(torch.eye(3))
+        self._q_target = rotmat_to_quat(torch.eye(3).reshape(1,3,3), ordering='xyzw')
         # self._obs = np.concatenate([x_1_train, x_2_train])
         self._obs = np.concatenate([x_1_train, x_1_train])
         # self._obs = np.concatenate([torch.ones(1, 3, 100), torch.ones(1, 3, 100)])
