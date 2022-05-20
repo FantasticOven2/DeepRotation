@@ -8,9 +8,9 @@ def vec12_to_mu_sigma(output):
     # print('mu before: ', output[:, 3:].reshape(bs, 3, 3))
     mu = gram_schmidt(output[:, 3:].reshape(bs, 3, 3)) # Some Orthogonal projection process
     # print('mu after: ', mu)
-    mu = torch.eye(3)
-    mu = mu.reshape((1, 3, 3))
-    mu = mu.repeat(bs, 1, 1)
+    # mu = torch.eye(3)
+    # mu = mu.reshape((1, 3, 3))
+    # mu = mu.repeat(bs, 1, 1)
     softPlus = nn.Softplus()
     print('sigma before: ', sigma[0])
     print('sigma after: ', softPlus(sigma)[0])
