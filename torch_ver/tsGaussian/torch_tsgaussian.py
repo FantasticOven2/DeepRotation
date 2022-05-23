@@ -93,8 +93,8 @@ class TangentSpaceGaussian(object):
         log_term = self.log_map(R_x, R_mu)
         batch_size = R_x.shape[0]
         sigma_mat = torch.diag_embed(sigma)
-        log_prob = -torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
-                    log_term.reshape(batch_size, 3, 1)).reshape((batch_size,)) - torch.log(self.normal_term(sigma))
+        log_prob = -(torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
+                    log_term.reshape(batch_size, 3, 1)).reshape((batch_size,))) / 2 - torch.log(self.normal_term(sigma))
         return log_prob
 
     def entropy(self, mu, sigma):

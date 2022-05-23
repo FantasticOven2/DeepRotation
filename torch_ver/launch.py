@@ -28,7 +28,8 @@ def main(argv):
         policy_kwargs['n_critics'] = 1
         policy_kwargs['share_features_extractor'] = False
         policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
-        # policy = 'MlpPolicy'
+        # policy = CustomSACPolicy
+        policy = 'MlpPolicy'
         # print(policy)
         model = SAC(policy, env, verbose=1, ent_coef='auto_0.1',
                     policy_kwargs=policy_kwargs, device=device)
@@ -38,7 +39,7 @@ def main(argv):
         # policy = CustomActorCriticPolicy
         model = PPO(policy, env, verbose=1, policy_kwargs=policy_kwargs, ent_coef='auto_0.1',
                 device=device)
-    model.learn(total_timesteps=1000, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
+    model.learn(total_timesteps=200, eval_freq=100, n_eval_episodes=100) # Change 500000 to 100000
     # model.save('./sac_500thsd_wahba')
 
 

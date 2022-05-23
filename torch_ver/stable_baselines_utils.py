@@ -74,8 +74,8 @@ class CustomSACActor(SACActor):
         del self.mu
         last_layer_dim = self.net_arch[-1] if len(
             self.net_arch) > 0 else self.features_dim
-        # self.vec12 = nn.Linear(last_layer_dim, 12)
-        self.vec3 = nn.Linear(last_layer_dim, 3)
+        self.vec12 = nn.Linear(last_layer_dim, 12)
+        # self.vec3 = nn.Linear(last_layer_dim, 3)
         self.action_dist = None
 
     def get_std(self) -> Tensor:
@@ -91,17 +91,17 @@ class CustomSACActor(SACActor):
         # print('obs: ', obs)
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
-        sigma = self.vec3(latent_pi)
-        softPlus = nn.Softplus()
-        print('sigma before: ', sigma[0])
-        sigma = softPlus(sigma)
-        print('sigma after: ', sigma[0])
-        mu = torch.eye(3)
-        mu = mu.reshape((1, 3, 3))
-        mu = mu.repeat(sigma.shape[0], 1, 1)
-        # vec12 = self.vec12(latent_pi)
+        # sigma = self.vec3(latent_pi)
+        # softPlus = nn.Softplus()
+        # print('sigma before: ', sigma[0])
+        # sigma = softPlus(sigma)
+        # print('sigma after: ', sigma[0])
+        # mu = torch.eye(3)
+        # mu = mu.reshape((1, 3, 3))
+        # mu = mu.repeat(sigma.shape[0], 1, 1)
+        vec12 = self.vec12(latent_pi)
         # print('vec12_elem: ', vec12[0][1])
-        # mu, sigma = utils.vec12_to_mu_sigma(vec12)
+        mu, sigma = utils.vec12_to_mu_sigma(vec12)
         # print('mu: ', mu)
         # print('sigma: ', sigma)
         return mu, sigma, {}
