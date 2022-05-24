@@ -89,6 +89,8 @@ class CustomSACActor(SACActor):
         if self.action_dist is None:
             self.action_dist = TangentSpaceGaussian(self.device)
         # print('obs: ', obs)
+        ''' Print out features, latent_pi, vec12 dims, see change in matrix L2 norm (Largest singular value) / Forbenius norm'''
+        print('obs shape: ', obs.shape)
         features = self.extract_features(obs)
         latent_pi = self.latent_pi(features)
         # sigma = self.vec3(latent_pi)
@@ -100,8 +102,15 @@ class CustomSACActor(SACActor):
         # mu = mu.reshape((1, 3, 3))
         # mu = mu.repeat(sigma.shape[0], 1, 1)
         vec12 = self.vec12(latent_pi)
+        print('Features: ', torch.norm(features))
+        print('Latent_pi: ', torch.norm(latent_pi))
+        print('vec12: ', torch.norm(vec12))
+        # import IPython
+        # IPython.embed()
         # print('vec12_elem: ', vec12[0][1])
         mu, sigma = utils.vec12_to_mu_sigma(vec12)
+        if vec12[0][0] >= 20:
+            raise Exception("Exploding")
         # print('mu: ', mu)
         # print('sigma: ', sigma)
         return mu, sigma, {}
@@ -181,7 +190,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
 class CustomCNN(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super(CustomCNN, self).__init__(observation_space, features_dim)
-        self._model = PointNet(features_dim)
+        self._model = PointNet(features_dim, batchnorm=True)
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         pred = self._model(observations)

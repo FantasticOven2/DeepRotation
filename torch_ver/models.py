@@ -36,8 +36,10 @@ class PointNet(torch.nn.Module):
         self.normalize_output = normalize_output
         self.head = torch.nn.Sequential(
             torch.nn.Linear(1024, 256),
+            torch.nn.BatchNorm1d(256),
             torch.nn.PReLU(),
             torch.nn.Linear(256, 128),
+            torch.nn.BatchNorm1d(128),
             torch.nn.PReLU(),
             torch.nn.Linear(128, features_dim)
         )
