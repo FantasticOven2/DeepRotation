@@ -13,7 +13,7 @@ from stable_baselines3.sac.policies import Actor as SACActor, MlpPolicy
 from torch import nn, Tensor
 
 from tsGaussian import torch_tsgaussian, utils
-from models import PointNet
+from models import PointNet, LatentNet
 
 class TangentSpaceGaussian(Distribution):
 
@@ -77,6 +77,7 @@ class CustomSACActor(SACActor):
         self.vec12 = nn.Linear(last_layer_dim, 12)
         # self.vec3 = nn.Linear(last_layer_dim, 3)
         self.action_dist = None
+        self.latent_pi = LatentNet()
 
     def get_std(self) -> Tensor:
         raise NotImplementedError('Not needed.')
@@ -90,9 +91,8 @@ class CustomSACActor(SACActor):
             self.action_dist = TangentSpaceGaussian(self.device)
         # print('obs: ', obs)
         ''' Print out features, latent_pi, vec12 dims, see change in matrix L2 norm (Largest singular value) / Forbenius norm'''
-        print('obs shape: ', obs.shape)
         features = self.extract_features(obs)
-        latent_pi = self.latent_pi(features)
+        vec12 = self.latent_pi(features)
         # sigma = self.vec3(latent_pi)
         # softPlus = nn.Softplus()
         # print('sigma before: ', sigma[0])
@@ -101,9 +101,9 @@ class CustomSACActor(SACActor):
         # mu = torch.eye(3)
         # mu = mu.reshape((1, 3, 3))
         # mu = mu.repeat(sigma.shape[0], 1, 1)
-        vec12 = self.vec12(latent_pi)
+        # vec12 = self.vec12(latent_pi)
         print('Features: ', torch.norm(features))
-        print('Latent_pi: ', torch.norm(latent_pi))
+        # print('Latent_pi: ', torch.norm(latent_pi))
         print('vec12: ', torch.norm(vec12))
         # import IPython
         # IPython.embed()

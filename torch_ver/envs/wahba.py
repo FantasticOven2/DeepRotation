@@ -10,7 +10,7 @@ import torch
 from gym import spaces
 from liegroups.torch import SO3 as SO3_torch
 
-N_MATCHES_PER_SAMPLE = 750
+N_MATCHES_PER_SAMPLE = 100
 
 
 def rotmat_to_quat(mat, ordering='xyzw'):
