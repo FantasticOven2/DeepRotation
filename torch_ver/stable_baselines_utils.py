@@ -35,7 +35,7 @@ class TangentSpaceGaussian(Distribution):
         return log_prob
 
     def entropy(self) -> Tensor:
-        return None
+        return self.distribution.entropy(self.mu, self.sigma)
 
     def sample(self) -> Tensor:
         """Need to be implemented"""

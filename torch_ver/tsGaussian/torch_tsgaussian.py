@@ -52,7 +52,6 @@ class TangentSpaceGaussian(object):
             dev = 'cpu'
         omega = torch.normal(torch.zeros(3, device=dev), sigma)
         R_mu = R_mu.to(dev)
-        # print('DEV: ', R_mu.get_device(), so3_exp_map(omega).get_device())
         R_x = torch.matmul(R_mu, so3_exp_map(omega))
         R_quat = matrix_to_quaternion(R_x)
         return R_quat, R_x
@@ -68,18 +67,6 @@ class TangentSpaceGaussian(object):
         """ Log map term in pdf of tangent space Gaussian
             Return a 3d vector.
         """
-        # print('R_1 size: ', R_1.size())
-        # print('R_2 size: ', R_2.size())
-        # if (len(R_2.shape) == 2):
-        #     R_2 = quaternion_to_matrix(R_1)
-        # print('identity: ', quaternion_to_matrix(torch.Tensor([0,0,0,1])))
-        # print('identity quat: ', matrix_to_quaternion(torch.eye(3)))
-        # print('exp result: ', torch.bmm(torch.transpose(R_1, 1, 2), R_2))
-        rot_mat = torch.bmm(torch.transpose(R_1, 1, 2), R_2)
-        # print(rot_mat[0])
-        # print(R_2[0])
-        # print((rot_mat != R_2).any())
-        # print('should be identtiy: ', torch.bmm(torch.transpose(rot_mat, 1, 2), rot_mat))
         return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.0001)
 
     def log_probs(self, R_x, R_mu, sigma):
@@ -98,4 +85,5 @@ class TangentSpaceGaussian(object):
         return log_prob
 
     def entropy(self, mu, sigma):
-        return None
+        sigma_mat = torch.diag_embed(sigma)
+        return 3 * (1 + torch.log(2 * np.pi)) / 2 + torch.log(torch.det(sigma_mat)) / 2
