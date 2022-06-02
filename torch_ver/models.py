@@ -5,25 +5,25 @@ class PointFeatCNN(torch.nn.Module):
     def __init__(self, batchnorm=False):
         super(PointFeatCNN, self).__init__()
         if batchnorm:
-            # self.net = torch.nn.Sequential(
-            #         torch.nn.Conv1d(6, 64, kernel_size=1),
-            #         torch.nn.BatchNorm1d(64),
-            #         torch.nn.PReLU(),
-            #         torch.nn.Conv1d(64, 128, kernel_size=1),
-            #         torch.nn.BatchNorm1d(128),
-            #         torch.nn.PReLU(),
-            #         torch.nn.Conv1d(128, 1024, kernel_size=1),
-            #         torch.nn.BatchNorm1d(1024),
-            #         torch.nn.AdaptiveMaxPool1d(output_size=1)
-            # )
             self.net = torch.nn.Sequential(
-                spectral_norm(torch.nn.Conv1d(6, 64, kernel_size=1)),
-                torch.nn.PReLU(),
-                spectral_norm(torch.nn.Conv1d(64, 128, kernel_size=1)),
-                torch.nn.PReLU(),
-                spectral_norm(torch.nn.Conv1d(128, 1024, kernel_size=1)),
-                torch.nn.AdaptiveMaxPool1d(output_size=1)
+                    torch.nn.Conv1d(6, 64, kernel_size=1),
+                    torch.nn.BatchNorm1d(64),
+                    torch.nn.PReLU(),
+                    torch.nn.Conv1d(64, 128, kernel_size=1),
+                    torch.nn.BatchNorm1d(128),
+                    torch.nn.PReLU(),
+                    torch.nn.Conv1d(128, 1024, kernel_size=1),
+                    torch.nn.BatchNorm1d(1024),
+                    torch.nn.AdaptiveMaxPool1d(output_size=1)
             )
+            # self.net = torch.nn.Sequential(
+            #     spectral_norm(torch.nn.Conv1d(6, 64, kernel_size=1)),
+            #     torch.nn.PReLU(),
+            #     spectral_norm(torch.nn.Conv1d(64, 128, kernel_size=1)),
+            #     torch.nn.PReLU(),
+            #     spectral_norm(torch.nn.Conv1d(128, 1024, kernel_size=1)),
+            #     torch.nn.AdaptiveMaxPool1d(output_size=1)
+            # )
         else:
             self.net = torch.nn.Sequential(
                 torch.nn.Conv1d(6, 64, kernel_size=1),
@@ -40,16 +40,27 @@ class PointFeatCNN(torch.nn.Module):
 
 class PointNet(torch.nn.Module):
     def __init__(self, features_dim, normalize_output=False, batchnorm=False):
+        # super(PointNet, self).__init__()
+        # self.feat_net = PointFeatCNN(batchnorm=batchnorm)
+        # self.normalize_output = normalize_output
+        # self.head = torch.nn.Sequential(
+        #     spectral_norm(torch.nn.Linear(1024, 256)),
+        #     torch.nn.PReLU(),
+        #     spectral_norm(torch.nn.Linear(256, 128)),
+        #     torch.nn.PReLU(),
+        #     spectral_norm(torch.nn.Linear(128, features_dim)),
+        # )
         super(PointNet, self).__init__()
         self.feat_net = PointFeatCNN(batchnorm=batchnorm)
         self.normalize_output = normalize_output
         self.head = torch.nn.Sequential(
-            spectral_norm(torch.nn.Linear(1024, 256)),
+            torch.nn.Linear(1024, 256),
             torch.nn.PReLU(),
-            spectral_norm(torch.nn.Linear(256, 128)),
+            torch.nn.Linear(256, 128),
             torch.nn.PReLU(),
-            spectral_norm(torch.nn.Linear(128, features_dim)),
+            torch.nn.Linear(128, features_dim),
         )
+
 
     def forward(self, x):
 
@@ -74,13 +85,33 @@ class PointNet(torch.nn.Module):
 
 class LatentNet(torch.nn.Module):
     def __init__(self):
+        # super(LatentNet, self).__init__()
+        # self.net = torch.nn.Sequential(
+        #     spectral_norm(torch.nn.Linear(256, 256)),
+        #     torch.nn.ReLU(),
+        #     spectral_norm(torch.nn.Linear(256, 256)),
+        #     torch.nn.ReLU(),
+        #     spectral_norm(torch.nn.Linear(256, 6)),
+        # )
+        # super(LatentNet, self).__init__()
+        # self.net = torch.nn.Sequential(
+        #     torch.nn.Linear(256, 256),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Linear(256, 256),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Linear(256, 6),
+        # )
+
         super(LatentNet, self).__init__()
         self.net = torch.nn.Sequential(
-            spectral_norm(torch.nn.Linear(256, 256)),
+            torch.nn.Linear(256, 256),
+            torch.nn.BatchNorm1d(256),
             torch.nn.ReLU(),
-            spectral_norm(torch.nn.Linear(256, 256)),
+            torch.nn.Linear(256, 256),
+            torch.nn.BatchNorm1d(256),
             torch.nn.ReLU(),
-            spectral_norm(torch.nn.Linear(256, 12)),
+            torch.nn.Linear(256, 6),
+            torch.nn.BatchNorm1d(6),
         )
     
     def forward(self, x):

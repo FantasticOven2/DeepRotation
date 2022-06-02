@@ -1,6 +1,8 @@
+import gym
+from gym import spaces
+
 import jax.numpy as jnp
 from jax import random
-from gym import spaces
 
 N_MATCHES_PER_SAMPLE = 100
 
@@ -79,17 +81,19 @@ def quat_chordal_squared_loss(q, q_target, reduce = True):
 class Wahba(gym.Env):
     """Custom Wahba Environment in jax"""
 
+    # To jax
     def __init__(self):
         super(Wahba, self).__init__()
         self.action_space = spaces.Box(
-            low = -1.0, high = 1.0, shape = (4,), dtype = np.float32)
+            low = -1.0, high = 1.0, shape = (4,), dtype = jnp.float32)
         self.observation_space = spaces.Box(
             low = 1.0, high = 1.0, shape = (2,3, N_MATCHES_PER_SAMPLE),
-            dtype = np.float32)
+            dtype = jnp.float32)
         self.obs, self._action = None, None
 
     def randm_action(self):
         return self.action_space.sample()
+
 
     """Details subject to change"""
     def _gen_sim_data_fast(self, N_rotations, N_matches_per_rotation, sigma,
@@ -98,28 +102,31 @@ class Wahba(gym.Env):
         axis = random.uniform(key, (N_rotations, 3), dtype = dtype)
         axis = axis / axis.norm(dim = 1, keepdim = True)
         if max_rotation_angle:
-            max_angle = max_rotation_angle * np.pi / 180.
+            max_angle = max_rotation_angle * jnp.pi / 180.
         else:
-            max_angle = np.pi
+            max_angle = jnp.pi
         angle = max_angle * random.uniform(key, (N_rotations, 1))
         C = SO3_torch.exp(angle * axis).as_matrix() ### Need to be changed later
         if N_rotations == 1:
             C = C.unsqueeze(dim = 0)
         x_1 = random.uniform(key, (N_rotations, 3, N_matches_per_rotation), dtype = dtype)
         x_1 = x_1 / x_1.norm(dim = 1, keepdim = True)
-        noise = sigma * torch.randn_like(x_1)
+        noise = sigma * random.uniform(key, x_1.shape)
         x_2 = C.bmm(x_1) + noise
         return C, x_1, x_2
 
+    # To jax
     def step(self, action):
-        action /= np.linalg.norm(action, axis = 0)
+        action /= jnp.linalg.norm(action, axis = 0)
         w, x, y, z = action
         loss = quat_chordal_squared_loss(
-                torch.tensor([x, y, z, w], dtype = self._q_target.dtype),
+                jnp.array([x, y, z, w], dtype = self._q_target.dtype),
                 self._q_target)
+        print(type(rew))
         rew = -loss.item()
         return self._obs, rew, True, {}
 
+    # To jax
     def reset(self):
         C_train, x_1_train, x_2_train = self._gen_sim_data_fast(
             1, N_MATCHES_PER_SAMPLE, 1e-2, max_rotation_angle = 180)

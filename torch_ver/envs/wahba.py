@@ -125,8 +125,7 @@ class Wahba(gym.Env):
         x_1 = torch.randn(N_rotations, 3, N_matches_per_rotation, dtype=dtype)
         x_1 = x_1 / x_1.norm(dim=1, keepdim=True)
         ### NEED TO CHANGE
-        # noise = sigma * torch.randn_like(x_1)
-        noise = 0 
+        noise = sigma * torch.randn_like(x_1)
         x_2 = C.bmm(x_1) + noise
         return C, x_1, x_2
 

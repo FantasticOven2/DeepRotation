@@ -74,7 +74,7 @@ class CustomSACActor(SACActor):
         del self.mu
         last_layer_dim = self.net_arch[-1] if len(
             self.net_arch) > 0 else self.features_dim
-        self.vec12 = nn.Linear(last_layer_dim, 12)
+        self.vec6 = nn.Linear(last_layer_dim, 6)
         # self.vec3 = nn.Linear(last_layer_dim, 3)
         self.action_dist = None
         self.latent_pi = LatentNet()
@@ -92,27 +92,14 @@ class CustomSACActor(SACActor):
         # print('obs: ', obs)
         ''' Print out features, latent_pi, vec12 dims, see change in matrix L2 norm (Largest singular value) / Forbenius norm'''
         features = self.extract_features(obs)
-        vec12 = self.latent_pi(features)
-        # sigma = self.vec3(latent_pi)
-        # softPlus = nn.Softplus()
-        # print('sigma before: ', sigma[0])
-        # sigma = softPlus(sigma)
-        # print('sigma after: ', sigma[0])
-        # mu = torch.eye(3)
-        # mu = mu.reshape((1, 3, 3))
-        # mu = mu.repeat(sigma.shape[0], 1, 1)
-        # vec12 = self.vec12(latent_pi)
+        vec6 = self.latent_pi(features)
         print('Features: ', torch.norm(features))
-        # print('Latent_pi: ', torch.norm(latent_pi))
-        print('vec12: ', torch.norm(vec12))
+        print('vec12: ', torch.norm(vec6))
         # import IPython
         # IPython.embed()
-        # print('vec12_elem: ', vec12[0][1])
-        mu, sigma = utils.vec12_to_mu_sigma(vec12)
-        if vec12[0][0] >= 20:
+        mu, sigma = utils.vec6_to_mu_sigma(vec6)
+        if vec6[0][0] >= 20:
             raise Exception("Exploding")
-        # print('mu: ', mu)
-        # print('sigma: ', sigma)
         return mu, sigma, {}
 
     def forward(self, obs: Tensor, deterministic: bool = False) -> Tensor:
@@ -120,7 +107,6 @@ class CustomSACActor(SACActor):
         action = self.action_dist.actions_from_params(mu, sigma,
                                                     deterministic = deterministic,
                                                     **kwargs)[0]
-        # print('action: ', action)
         return action
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
