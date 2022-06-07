@@ -3,7 +3,7 @@ import numpy as np
 # from liegroups.torch import SO3
 # from scipy.spatial.transform import Rotation as R
 from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
-from pytorch3d.transforms import matrix_to_quaternion, quaternion_to_matrix
+from pytorch3d.transforms import quaternion_to_axis_angle, axis_angle_to_quaternion, quaternion_multiply
 
 """Test liegroup exp: correct"""
 """Test liegroup log: correct (should be correct based on relationship between exp and log)"""
@@ -52,10 +52,9 @@ class TangentSpaceGaussian(object):
         if dev == -1:
             dev = 'cpu'
         omega = torch.normal(torch.zeros(3, device=dev), sigma)
-        R_mu = so3_exp_map(R_mu).to(dev)
-        R_x = torch.matmul(R_mu, so3_exp_map(omega))
-        R_quat = matrix_to_quaternion(R_x)
-        return R_quat, R_x
+        R_x = axis_angle_to_quaternion(omega)
+        R_quat = quaternion_multiply(R_mu, R_x)
+        return R_quat
 
     def normal_term(self, sigma):
         """ Compute normalization term in the pdf of tangent space Gaussian
@@ -68,7 +67,8 @@ class TangentSpaceGaussian(object):
         """ Log map term in pdf of tangent space Gaussian
             Return a 3d vector.
         """
-        return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.0001)
+        return quaternion_to_axis_angle(quaternion_multiply(R_1, R_2))
+        # return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.0001)
 
     def log_probs(self, R_x, R_mu, sigma):
         """ Log probability of a given R_x with mean R_mu
@@ -77,8 +77,8 @@ class TangentSpaceGaussian(object):
         dev = R_x.get_device()
         if dev == -1:
             dev = 'cpu'
-        R_mu = so3_exp_map(R_mu).to(dev)
-        log_term = self.log_map(R_x, R_mu)
+        # R_mu = so3_exp_map(R_mu).to(dev)
+        log_term = self.log_map(R_mu, R_x)
         batch_size = R_x.shape[0]
         sigma_mat = torch.diag_embed(sigma)
         log_prob = -(torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \

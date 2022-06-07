@@ -105,13 +105,13 @@ class LatentNet(torch.nn.Module):
         super(LatentNet, self).__init__()
         self.net = torch.nn.Sequential(
             torch.nn.Linear(256, 256),
-            torch.nn.BatchNorm1d(256),
+            # torch.nn.BatchNorm1d(256),
             torch.nn.ReLU(),
             torch.nn.Linear(256, 256),
-            torch.nn.BatchNorm1d(256),
+            # torch.nn.BatchNorm1d(256),
             torch.nn.ReLU(),
-            torch.nn.Linear(256, 6),
-            torch.nn.BatchNorm1d(6),
+            torch.nn.Linear(256, 7),
+            # torch.nn.BatchNorm1d(7),
         )
     
     def forward(self, x):

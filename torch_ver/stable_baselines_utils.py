@@ -39,8 +39,8 @@ class TangentSpaceGaussian(Distribution):
 
     def sample(self) -> Tensor:
         """Need to be implemented"""
-        s, s_mat = self.distribution.rsample(self.mu, self.sigma)
-        return s, s_mat
+        s = self.distribution.rsample(self.mu, self.sigma)
+        return s
 
     """What is this mode function"""
     def mode(self) -> Tensor:
@@ -56,10 +56,10 @@ class TangentSpaceGaussian(Distribution):
         return self.get_actions(deterministic = deterministic)
 
     def log_prob_from_params(self, mu, sigma):
-        actions, actions_mat = self.actions_from_params(mu, sigma)
+        actions = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
         # print('actions_mat: ', actions_mat)
-        log_prob = self.log_prob(actions_mat)
+        log_prob = self.log_prob(actions)
         # print('log prob: ', log_prob[0])
         # print('prob: ', np.e ** log_prob[0])
         return actions, log_prob
@@ -74,7 +74,7 @@ class CustomSACActor(SACActor):
         del self.mu
         last_layer_dim = self.net_arch[-1] if len(
             self.net_arch) > 0 else self.features_dim
-        self.vec6 = nn.Linear(last_layer_dim, 6)
+        self.vec7 = nn.Linear(last_layer_dim, 7)
         # self.vec3 = nn.Linear(last_layer_dim, 3)
         self.action_dist = None
         self.latent_pi = LatentNet()
@@ -83,7 +83,7 @@ class CustomSACActor(SACActor):
         raise NotImplementedError('Not needed.')
 
     def reset_noise(self, batch_size: int = 1) -> None:
-        raise NotIMplementedError('Not needed.')
+        raise NotImplementedError('Not needed.')
 
     def get_action_dist_params(self, obs: Tensor) -> Tuple[
         Tensor, Tensor, Dict[str, Tensor]]:
@@ -92,13 +92,13 @@ class CustomSACActor(SACActor):
         # print('obs: ', obs)
         ''' Print out features, latent_pi, vec12 dims, see change in matrix L2 norm (Largest singular value) / Forbenius norm'''
         features = self.extract_features(obs)
-        vec6 = self.latent_pi(features)
+        vec7 = self.latent_pi(features)
         print('Features: ', torch.norm(features))
-        print('vec12: ', torch.norm(vec6))
+        print('vec7: ', torch.norm(vec7))
         # import IPython
         # IPython.embed()
-        mu, sigma = utils.vec6_to_mu_sigma(vec6)
-        if vec6[0][0] >= 20:
+        mu, sigma = utils.vec7_to_mu_sigma(vec7)
+        if vec7[0][0] >= 20:
             raise Exception("Exploding")
         return mu, sigma, {}
 
@@ -106,7 +106,7 @@ class CustomSACActor(SACActor):
         mu, sigma, kwargs = self.get_action_dist_params(obs)
         action = self.action_dist.actions_from_params(mu, sigma,
                                                     deterministic = deterministic,
-                                                    **kwargs)[0]
+                                                    **kwargs)
         return action
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -176,7 +176,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
 class CustomCNN(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super(CustomCNN, self).__init__(observation_space, features_dim)
-        self._model = PointNet(features_dim, batchnorm=True)
+        self._model = PointNet(features_dim, batchnorm=False)
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         pred = self._model(observations)
