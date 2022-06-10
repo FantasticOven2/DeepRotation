@@ -87,4 +87,5 @@ class TangentSpaceGaussian(object):
 
     def entropy(self, mu, sigma):
         sigma_mat = torch.diag_embed(sigma)
-        return 3 * (1 + torch.log(2 * np.pi)) / 2 + torch.log(torch.det(sigma_mat)) / 2
+        entropy =  3 * (1 + np.log(2 * np.pi)) / 2 + torch.log(torch.det(sigma_mat)) / 2
+        return entropy

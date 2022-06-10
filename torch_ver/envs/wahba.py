@@ -93,7 +93,7 @@ def quat_chordal_squared_loss(q, q_target, reduce=True):
     d = quat_norm_diff(q, q_target)
     losses = 2 * d * d * (4. - d * d)
     loss = losses.mean() if reduce else losses
-    print(loss)
+    # print(loss)
     return loss
 
 
@@ -137,7 +137,7 @@ class Wahba(gym.Env):
             self._q_target)
         # print('loss: ', loss)
         rew = -loss.item()
-        print('rew: ', rew)
+        # print('rew: ', rew)
         return self._obs, rew, True, {}
 
     def reset(self):

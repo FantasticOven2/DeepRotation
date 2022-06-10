@@ -135,7 +135,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
 
         latent_dim_pi = self.mlp_extractor.latent_dim_pi
         self.action_dist = None
-        self.action_net = nn.Linear(latent_dim_pi, 12)
+        self.action_net = nn.Linear(latent_dim_pi, 7)
         self.value_net = nn.Linear(self.mlp_extractor.latent_dim_vf, 1)
 
         if self.ortho_init:
@@ -161,15 +161,15 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         latent_pi, latent_vf = self.mlp_extractor(features)
         values = self.value_net(latent_vf)
         distribution = self._get_action_dist_from_latent(latent_pi)
-        actions, actions_mat = distribution.get_actions(deterministic=deterministic)
+        actions = distribution.get_actions(deterministic=deterministic)
         # print(actions.shape)
         # print('actions size: ', actions.shape)
-        log_prob = distribution.log_prob(actions_mat)
+        log_prob = distribution.log_prob(actions)
         return actions, values, log_prob
 
     def _get_action_dist_from_latent(self, latent_pi: Tensor) -> Distribution:
         vec12 = self.action_net(latent_pi)
-        mu, sigma = utils.vec12_to_mu_sigma(vec12)
+        mu, sigma = utils.vec7_to_mu_sigma(vec12)
         return self.action_dist.proba_distribution(mu, sigma)
 
 
