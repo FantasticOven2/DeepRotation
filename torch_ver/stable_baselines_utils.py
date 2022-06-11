@@ -56,10 +56,10 @@ class TangentSpaceGaussian(Distribution):
         return self.get_actions(deterministic = deterministic)
 
     def log_prob_from_params(self, mu, sigma):
-        actions = self.actions_from_params(mu, sigma)
+        actions, log_prob = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
         # print('actions_mat: ', actions_mat)
-        log_prob = self.log_prob(actions)
+        # log_prob = self.log_prob(actions)
         # print('log prob: ', log_prob[0])
         # print('prob: ', np.e ** log_prob[0])
         return actions, log_prob
@@ -74,7 +74,9 @@ class CustomSACActor(SACActor):
         del self.mu
         last_layer_dim = self.net_arch[-1] if len(
             self.net_arch) > 0 else self.features_dim
-        self.vec7 = nn.Linear(last_layer_dim, 7)
+
+        ### Quaternion Representation ###    
+        # self.vec7 = nn.Linear(last_layer_dim, 7)
         # self.vec3 = nn.Linear(last_layer_dim, 3)
         self.action_dist = None
         self.latent_pi = LatentNet()
@@ -97,7 +99,7 @@ class CustomSACActor(SACActor):
         print('vec7: ', torch.norm(vec7))
         # import IPython
         # IPython.embed()
-        mu, sigma = utils.vec7_to_mu_sigma(vec7)
+        mu, sigma = utils.vec9_to_mu_sigma(vec7)
         if vec7[0][0] >= 20:
             raise Exception("Exploding")
         return mu, sigma, {}

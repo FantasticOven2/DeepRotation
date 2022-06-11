@@ -85,17 +85,50 @@ def quat_norm_diff(q_a, q_b):
     if q_a.dim() < 2:
         q_a = q_a.unsqueeze(0)
         q_b = q_b.unsqueeze(0)
+    print('difference: ', (q_a - q_b).norm(dim=1))
+    print('summation: ', (q_a + q_b).norm(dim=1))
     return torch.min((q_a - q_b).norm(dim=1), (q_a + q_b).norm(dim=1)).squeeze()
 
 
 def quat_chordal_squared_loss(q, q_target, reduce=True):
     assert (q.shape == q_target.shape)
     d = quat_norm_diff(q, q_target)
+    print(d)
+    print('d shape: ', d.shape)
     losses = 2 * d * d * (4. - d * d)
+    # losses = d / 2
+    print('losses: ', losses)
     loss = losses.mean() if reduce else losses
     # print(loss)
     return loss
 
+def compute_geodesic_distance_from_two_matrices(m1, m2):
+    batch=m1.shape[0]
+    # print(type(m1))
+    # print(type(m2))
+    m1 = torch.from_numpy(m1).float()
+    if m1.dim() < 3:
+        m1 = m1.unsqueeze(0)
+    # print(m1)
+    # print(m1[0,0,0])
+    # print('m2 shape: ', m2.shape)
+    m = torch.bmm(m1, m2.float().transpose(1, 2)) #batch*3*3
+    
+    cos = (  m[:,0,0] + m[:,1,1] + m[:,2,2] - 1 )/2
+    cos = torch.min(cos, torch.autograd.Variable(torch.ones(batch)) )
+    cos = torch.max(cos, torch.autograd.Variable(torch.ones(batch))*-1 )
+    
+    
+    theta = torch.acos(cos)
+    
+    #theta = torch.min(theta, 2*np.pi - theta)
+    print(theta.shape)
+    
+    return theta
+
+def fro_loss(R1, R2):
+    print(type(R1))
+    return torch.norm(R1 - R2).mean()
 
 class Wahba(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -104,7 +137,7 @@ class Wahba(gym.Env):
     def __init__(self):
         super(Wahba, self).__init__()
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(4,), dtype=np.float32)
+            low=-1.0, high=1.0, shape=(6,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(2, 3, N_MATCHES_PER_SAMPLE),
             dtype=np.float32)
@@ -120,6 +153,7 @@ class Wahba(gym.Env):
             max_angle = np.pi
         angle = max_angle * torch.rand(N_rotations, 1)
         C = SO3_torch.exp(angle * axis).as_matrix()
+        print('C shape: ', C)
         if N_rotations == 1:
             C = C.unsqueeze(dim=0)
         x_1 = torch.randn(N_rotations, 3, N_matches_per_rotation, dtype=dtype)
@@ -130,11 +164,15 @@ class Wahba(gym.Env):
         return C, x_1, x_2
 
     def step(self, action):
-        action /= np.linalg.norm(action, axis=0)
-        w, x, y, z = action
-        loss = quat_chordal_squared_loss(
-            torch.tensor([x, y, z, w], dtype=self._q_target.dtype),
-            self._q_target)
+
+        # action /= np.linalg.norm(action, axis=0)
+        # w, x, y, z = action
+
+        # loss = quat_chordal_squared_loss(
+        #     torch.tensor([x, y, z, w], dtype=self._q_target.dtype),
+        #     self._q_target)
+        action = torch.Tensor(action)
+        loss = fro_loss(action, self._q_target)
         # print('loss: ', loss)
         rew = -loss.item()
         # print('rew: ', rew)
@@ -143,7 +181,9 @@ class Wahba(gym.Env):
     def reset(self):
         C_train, x_1_train, x_2_train = self._gen_sim_data_fast(
             1, N_MATCHES_PER_SAMPLE, 1e-2, max_rotation_angle=180)
-        self._q_target = rotmat_to_quat(C_train, ordering='xyzw')
+        # self._q_target = rotmat_to_quat(C_train, ordering='xyzw')
+        # print(type(C_train))
+        self._q_target = C_train
         # self._q_target = rotmat_to_quat(torch.eye(3).reshape(1,3,3), ordering='xyzw')
         self._obs = np.concatenate([x_1_train, x_2_train])
         # self._obs = np.concatenate([x_1_train, x_1_train])

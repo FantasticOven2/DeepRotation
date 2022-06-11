@@ -1,9 +1,12 @@
 import torch
+from torch.distributions.multivariate_normal import MultivariateNormal
 import numpy as np
+
 # from liegroups.torch import SO3
 # from scipy.spatial.transform import Rotation as R
 from pytorch3d.transforms.so3 import so3_exp_map, so3_log_map
 from pytorch3d.transforms import quaternion_to_axis_angle, axis_angle_to_quaternion, quaternion_multiply
+from .utils import *
 
 """Test liegroup exp: correct"""
 """Test liegroup log: correct (should be correct based on relationship between exp and log)"""
@@ -47,14 +50,26 @@ class TangentSpaceGaussian(object):
         """ Sample a rotation using tangent space Gaussian
             Return a skew symmetric matrix.
         """
-        print('R_mu: ', R_mu[0])
+        # print('R_mu: ', R_mu[0])
         dev = sigma.get_device()
         if dev == -1:
             dev = 'cpu'
-        omega = torch.normal(torch.zeros(3, device=dev), sigma)
-        R_x = axis_angle_to_quaternion(omega)
-        R_quat = quaternion_multiply(R_mu, R_x)
-        return R_quat
+        sigma_mat = torch.diag_embed(sigma)
+        self.dist = MultivariateNormal(torch.zeros(3, device=dev), sigma_mat)
+        # omega = torch.normal(torch.zeros(3, device=dev), sigma)
+
+        R_x = self.dist.sample()
+        log_prob = self.dist.log_prob(R_x)
+        self.log_prob = log_prob
+        ### Quaternion Representation ###
+        # R_x = axis_angle_to_quaternion(omega)
+        # R_quat = quaternion_multiply(R_mu, R_x)
+
+        ### Rotation Matrix Representation ###
+        R_x = compute_rotation_matrix_from_Rodriguez(R_x)
+        action = torch.bmm(R_mu, R_x)
+        print('action type: ', type(action))
+        return action
 
     def normal_term(self, sigma):
         """ Compute normalization term in the pdf of tangent space Gaussian
@@ -74,16 +89,17 @@ class TangentSpaceGaussian(object):
         """ Log probability of a given R_x with mean R_mu
             Return a probability
         """
-        dev = R_x.get_device()
-        if dev == -1:
-            dev = 'cpu'
-        # R_mu = so3_exp_map(R_mu).to(dev)
-        log_term = self.log_map(R_mu, R_x)
-        batch_size = R_x.shape[0]
-        sigma_mat = torch.diag_embed(sigma)
-        log_prob = -(torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
-                    log_term.reshape(batch_size, 3, 1)).reshape((batch_size,))) / 2 - torch.log(self.normal_term(sigma))
-        return log_prob
+        # dev = R_x.get_device()
+        # if dev == -1:
+        #     dev = 'cpu'
+        # # R_mu = so3_exp_map(R_mu).to(dev)
+        # log_term = self.log_map(R_mu, R_x)
+        # batch_size = R_x.shape[0]
+        # sigma_mat = torch.diag_embed(sigma)
+        # log_prob = -(torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
+        #             log_term.reshape(batch_size, 3, 1)).reshape((batch_size,))) / 2 - torch.log(self.normal_term(sigma))
+        # return log_prob
+        return self.log_prob
 
     def entropy(self, mu, sigma):
         sigma_mat = torch.diag_embed(sigma)

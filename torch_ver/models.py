@@ -110,7 +110,7 @@ class LatentNet(torch.nn.Module):
             torch.nn.Linear(256, 256),
             # torch.nn.BatchNorm1d(256),
             torch.nn.ReLU(),
-            torch.nn.Linear(256, 7),
+            torch.nn.Linear(256, 9),
             # torch.nn.BatchNorm1d(7),
         )
     
