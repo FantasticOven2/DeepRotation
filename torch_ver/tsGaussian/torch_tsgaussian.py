@@ -52,24 +52,28 @@ class TangentSpaceGaussian(object):
         """
         # print('R_mu: ', R_mu[0])
         dev = sigma.get_device()
+        print(dev)
         if dev == -1:
             dev = 'cpu'
         sigma_mat = torch.diag_embed(sigma)
         self.dist = MultivariateNormal(torch.zeros(3, device=dev), sigma_mat)
-        # omega = torch.normal(torch.zeros(3, device=dev), sigma)
-
         R_x = self.dist.sample()
-        log_prob = self.dist.log_prob(R_x)
-        self.log_prob = log_prob
+        action = torch.cat((R_x, R_mu), 1)
+        return action
+        # omega = torch.normal(torch.zeros(3, device=dev), sigma)
+    
+        # R_x = self.dist.sample()
+        # log_prob = self.dist.log_prob(R_x)
+        # self.log_prob = log_prob
         ### Quaternion Representation ###
         # R_x = axis_angle_to_quaternion(omega)
         # R_quat = quaternion_multiply(R_mu, R_x)
 
         ### Rotation Matrix Representation ###
-        R_x = compute_rotation_matrix_from_Rodriguez(R_x)
-        action = torch.bmm(R_mu, R_x)
-        print('action type: ', type(action))
-        return action
+        # R_x = compute_rotation_matrix_from_Rodriguez(R_x)
+        # action = torch.bmm(R_mu, R_x)
+        # print('action type: ', type(action))
+        # return action
 
     def normal_term(self, sigma):
         """ Compute normalization term in the pdf of tangent space Gaussian
@@ -85,7 +89,7 @@ class TangentSpaceGaussian(object):
         return quaternion_to_axis_angle(quaternion_multiply(R_1, R_2))
         # return so3_log_map(torch.bmm(torch.transpose(R_1, 1, 2), R_2), eps = 0.0001)
 
-    def log_probs(self, R_x, R_mu, sigma):
+    def log_probs(self, action):
         """ Log probability of a given R_x with mean R_mu
             Return a probability
         """
@@ -99,9 +103,11 @@ class TangentSpaceGaussian(object):
         # log_prob = -(torch.bmm(torch.bmm(log_term.reshape((batch_size, 1, 3)), torch.linalg.inv(sigma_mat)), \
         #             log_term.reshape(batch_size, 3, 1)).reshape((batch_size,))) / 2 - torch.log(self.normal_term(sigma))
         # return log_prob
-        return self.log_prob
+        R_x = action[:, : 3]
+        return self.dist.log_prob(R_x)
 
     def entropy(self, mu, sigma):
-        sigma_mat = torch.diag_embed(sigma)
-        entropy =  3 * (1 + np.log(2 * np.pi)) / 2 + torch.log(torch.det(sigma_mat)) / 2
-        return entropy
+        return self.dist.entropy()
+        # sigma_mat = torch.diag_embed(sigma)
+        # entropy =  3 * (1 + np.log(2 * np.pi)) / 2 + torch.log(torch.det(sigma_mat)) / 2
+        # return entropy

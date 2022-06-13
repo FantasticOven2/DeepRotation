@@ -42,6 +42,7 @@ def main(argv):
     policy_kwargs['n_critics'] = 1
     policy_kwargs['share_features_extractor'] = False
     policy = 'MlpPolicy' if FLAGS.alg == 'sac' else CustomSACPolicy
+    # policy = 'MlpPolicy'
     model = SAC(policy, env, verbose=1, ent_coef=0.1,
                 policy_kwargs=policy_kwargs, device=device)
     # print('PPO')

@@ -9,6 +9,8 @@ import numpy as np
 import torch
 from gym import spaces
 from liegroups.torch import SO3 as SO3_torch
+from tsGaussian.utils import *
+from tsGaussian.gram_schmidt import gram_schmidt
 
 N_MATCHES_PER_SAMPLE = 100
 
@@ -106,7 +108,7 @@ def compute_geodesic_distance_from_two_matrices(m1, m2):
     batch=m1.shape[0]
     # print(type(m1))
     # print(type(m2))
-    m1 = torch.from_numpy(m1).float()
+    # m1 = torch.from_numpy(m1).float()
     if m1.dim() < 3:
         m1 = m1.unsqueeze(0)
     # print(m1)
@@ -122,13 +124,12 @@ def compute_geodesic_distance_from_two_matrices(m1, m2):
     theta = torch.acos(cos)
     
     #theta = torch.min(theta, 2*np.pi - theta)
-    print(theta.shape)
+    # print(theta.shape)
     
     return theta
 
 def fro_loss(R1, R2):
-    print(type(R1))
-    return torch.norm(R1 - R2).mean()
+    return torch.norm(R1 - R2, 'fro').mean()
 
 class Wahba(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -137,7 +138,7 @@ class Wahba(gym.Env):
     def __init__(self):
         super(Wahba, self).__init__()
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(6,), dtype=np.float32)
+            low=-1.0, high=1.0, shape=(9,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(2, 3, N_MATCHES_PER_SAMPLE),
             dtype=np.float32)
@@ -153,7 +154,6 @@ class Wahba(gym.Env):
             max_angle = np.pi
         angle = max_angle * torch.rand(N_rotations, 1)
         C = SO3_torch.exp(angle * axis).as_matrix()
-        print('C shape: ', C)
         if N_rotations == 1:
             C = C.unsqueeze(dim=0)
         x_1 = torch.randn(N_rotations, 3, N_matches_per_rotation, dtype=dtype)
@@ -172,8 +172,17 @@ class Wahba(gym.Env):
         #     torch.tensor([x, y, z, w], dtype=self._q_target.dtype),
         #     self._q_target)
         action = torch.Tensor(action)
-        loss = fro_loss(action, self._q_target)
+        if action.dim() < 2:
+            action = action.unsqueeze(0)
+        bs = action.shape[0]
+        # action = gram_schmidt(action.reshape((bs, 3, 3)))
+        rot6d, axis_angle = action[:, 3 :], action[:, : 3]
+        R_mu = compute_rotation_matrix_from_ortho6d(rot6d)
+        R_x = compute_rotation_matrix_from_Rodriguez(axis_angle)
+        action = torch.bmm(R_mu, R_x)
+        # loss = fro_loss(action, self._q_target)
         # print('loss: ', loss)
+        loss = compute_geodesic_distance_from_two_matrices(action, self._q_target).mean()
         rew = -loss.item()
         # print('rew: ', rew)
         return self._obs, rew, True, {}

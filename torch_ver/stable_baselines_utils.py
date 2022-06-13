@@ -5,7 +5,7 @@ import gym
 import numpy as np
 import torch
 from stable_baselines3.common.distributions import \
-    Distribution
+    Distribution, DiagGaussianDistribution, SquashedDiagGaussianDistribution
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.type_aliases import Schedule
@@ -31,7 +31,7 @@ class TangentSpaceGaussian(Distribution):
         return self
 
     def log_prob(self, actions) -> Tensor:
-        log_prob = self.distribution.log_probs(actions, self.mu, self.sigma) # Parameter for log_probs? R_mu, R_x?
+        log_prob = self.distribution.log_probs(actions) # Parameter for log_probs? R_mu, R_x?
         return log_prob
 
     def entropy(self) -> Tensor:
@@ -56,10 +56,10 @@ class TangentSpaceGaussian(Distribution):
         return self.get_actions(deterministic = deterministic)
 
     def log_prob_from_params(self, mu, sigma):
-        actions, log_prob = self.actions_from_params(mu, sigma)
+        actions = self.actions_from_params(mu, sigma)
         # print('actions: ', actions)
         # print('actions_mat: ', actions_mat)
-        # log_prob = self.log_prob(actions)
+        log_prob = self.log_prob(actions)
         # print('log prob: ', log_prob[0])
         # print('prob: ', np.e ** log_prob[0])
         return actions, log_prob
@@ -90,31 +90,33 @@ class CustomSACActor(SACActor):
     def get_action_dist_params(self, obs: Tensor) -> Tuple[
         Tensor, Tensor, Dict[str, Tensor]]:
         if self.action_dist is None:
-            self.action_dist = TangentSpaceGaussian(self.device)
+            self.action_dist = SquashedDiagGaussianDistribution(3)
         # print('obs: ', obs)
         ''' Print out features, latent_pi, vec12 dims, see change in matrix L2 norm (Largest singular value) / Forbenius norm'''
         features = self.extract_features(obs)
-        vec7 = self.latent_pi(features)
-        print('Features: ', torch.norm(features))
-        print('vec7: ', torch.norm(vec7))
-        # import IPython
-        # IPython.embed()
-        mu, sigma = utils.vec9_to_mu_sigma(vec7)
-        if vec7[0][0] >= 20:
+        vec9 = self.latent_pi(features)
+        mu, sigma = utils.vec9_to_mu_sigma(vec9)
+        if vec9[0][0] >= 20:
             raise Exception("Exploding")
         return mu, sigma, {}
 
     def forward(self, obs: Tensor, deterministic: bool = False) -> Tensor:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
-        action = self.action_dist.actions_from_params(mu, sigma,
+        bs = mu.shape[0]
+        mean_action = torch.zeros((bs, 3), device = mu.device)
+        axis_angle = self.action_dist.actions_from_params(mean_action, sigma,
                                                     deterministic = deterministic,
                                                     **kwargs)
+        action = torch.cat((axis_angle, mu), 1)
         return action
 
     def action_log_prob(self, obs: Tensor) -> Tuple[Tensor, Tensor]:
         mu, sigma, kwargs = self.get_action_dist_params(obs)
-        a, lp = self.action_dist.log_prob_from_params(mu, sigma, **kwargs)
-        return a, lp
+        bs = mu.shape[0]
+        mean_action = torch.zeros((bs, 3), device = mu.device)
+        axis_angle, lp = self.action_dist.log_prob_from_params(mean_action, sigma, **kwargs)
+        action = torch.cat((axis_angle, mu), 1)
+        return action, lp
 
     def _predict(self, observation: Tensor,
                     deterministic: bool = False) -> Tensor:

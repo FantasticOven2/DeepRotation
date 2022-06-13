@@ -7,7 +7,7 @@ from tsGaussian.gram_schmidt import gram_schmidt
 def normalize_vector(v, return_mag =False):
     batch=v.shape[0]
     v_mag = torch.sqrt(v.pow(2).sum(1))# batch
-    v_mag = torch.max(v_mag, torch.autograd.Variable(torch.FloatTensor([1e-8]).cuda()))
+    v_mag = torch.max(v_mag, torch.autograd.Variable(torch.FloatTensor([1e-8])))
     v_mag = v_mag.view(batch,1).expand(batch,v.shape[1])
     v = v/v_mag
     if(return_mag==True):
@@ -30,6 +30,7 @@ def cross_product( u, v):
 
 # ortho6d batch*6
 def compute_rotation_matrix_from_ortho6d(ortho6d):
+    # print(ortho6d.device)
     x_raw = ortho6d[:,0:3]#batch*3
     y_raw = ortho6d[:,3:6]#batch*3
         
@@ -80,10 +81,10 @@ def compute_rotation_matrix_from_Rodriguez( rod):
 def vec9_to_mu_sigma(output):
     bs = output.shape[0]
     sigma = output[:, :3]
-    rot6d = output[:, 3:]
-    print('rot6d shape: ', rot6d.shape)
-    mu = compute_rotation_matrix_from_ortho6d(rot6d)
-    print('sigma before: ', sigma[0])
+    mu = output[:, 3:]
+    # print('mu shape: ', mu.shape)
+    # mu = compute_rotation_matrix_from_ortho6d(rot6d)
+    # print('sigma before: ', sigma[0])
     sigma = sigma.exp()
-    print('sigma after: ', sigma[0])
+    # print('sigma after: ', sigma[0])
     return mu, sigma
